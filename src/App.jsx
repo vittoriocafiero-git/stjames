@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Beer, Star, AlertTriangle, RefreshCw, Train, Users } from 'lucide-react'
+import { Beer, AlertTriangle, RefreshCw, Train, Users } from 'lucide-react'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const NAPTAN_ID     = '940GZZLUSJP'
@@ -45,41 +45,86 @@ function truncate(str, max) {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function StarIcon() {
-  return (
-    <span className="inline-flex items-center justify-center" style={{ color: '#008200' }}>
-      <Star size={20} fill="#008200" strokeWidth={0} />
-    </span>
-  )
-}
-
-function HeaderBar({ clock }) {
+function HeaderBar({ clock, crowding }) {
   return (
     <div className="flex items-center justify-between px-6 py-3 header-line">
-      <div className="flex items-center gap-3 glow" style={{ fontSize: '2.2rem' }}>
-        <StarIcon />
-        <StarIcon />
-        <span style={{ letterSpacing: '0.25em' }}>HEINEKEN</span>
-        <StarIcon />
-        <StarIcon />
-      </div>
-
-      <div className="flex flex-col items-center">
-        <div className="glow-bright" style={{ fontSize: '3rem', letterSpacing: '0.15em' }}>
+      {/* Station name */}
+      <div className="flex flex-col">
+        <div style={{ fontSize: '3rem', letterSpacing: '0.15em', color: '#008200' }}>
           ST. JAMES&apos;S PARK
         </div>
-        <div className="glow" style={{ fontSize: '1.4rem', letterSpacing: '0.4em', color: '#005500' }}>
+        <div style={{ fontSize: '1.3rem', letterSpacing: '0.4em', color: '#005500' }}>
           UNDERGROUND DEPARTURES
         </div>
       </div>
 
+      {/* Crowding indicator — always visible */}
+      <CrowdingPanel crowding={crowding} />
+
+      {/* Clock */}
       <div className="flex flex-col items-end">
-        <div className="glow-bright" style={{ fontSize: '2.8rem', letterSpacing: '0.1em', fontVariantNumeric: 'tabular-nums' }}>
+        <div style={{ fontSize: '2.8rem', letterSpacing: '0.1em', fontVariantNumeric: 'tabular-nums', color: '#008200' }}>
           {clock}
         </div>
-        <div className="glow-dim" style={{ fontSize: '1.2rem', letterSpacing: '0.2em', color: '#005500' }}>
+        <div style={{ fontSize: '1.2rem', letterSpacing: '0.2em', color: '#005500' }}>
           LONDON, UK
         </div>
+      </div>
+    </div>
+  )
+}
+
+function CrowdingPanel({ crowding }) {
+  const hasData = crowding !== null
+  const color   = hasData ? crowdColor(crowding) : '#004000'
+  const label   = hasData ? crowdLabel(crowding) : 'NO DATA'
+
+  return (
+    <div
+      style={{
+        border: `1px solid ${color}`,
+        padding: '8px 16px',
+        minWidth: '260px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '6px',
+        background: 'rgba(0,130,0,0.04)',
+      }}
+    >
+      <div className="flex items-center gap-2" style={{ color: '#005500', fontSize: '1.1rem', letterSpacing: '0.2em' }}>
+        <Users size={14} style={{ color: '#005500' }} />
+        STATION CROWDING
+      </div>
+      <div className="flex items-center gap-3">
+        <div
+          style={{
+            flex: 1,
+            height: '10px',
+            background: '#001a00',
+            borderRadius: '2px',
+            overflow: 'hidden',
+          }}
+        >
+          {hasData && (
+            <div
+              style={{
+                width: `${crowding}%`,
+                height: '100%',
+                background: color,
+                borderRadius: '2px',
+                transition: 'width 0.5s ease',
+              }}
+            />
+          )}
+        </div>
+        <div style={{ fontSize: '1.8rem', color, minWidth: '90px', letterSpacing: '0.1em' }}>
+          {label}
+        </div>
+      </div>
+      <div style={{ fontSize: '1rem', color: '#003300', letterSpacing: '0.05em' }}>
+        {hasData
+          ? `${crowding}% of peak capacity · historical estimate`
+          : 'crowding data unavailable for this station'}
       </div>
     </div>
   )
@@ -230,7 +275,7 @@ function Footer() {
         >
           🍺&nbsp; TIME FOR ONE MORE?&nbsp;&nbsp;•&nbsp;&nbsp;PLEASE DRINK RESPONSIBLY&nbsp;&nbsp;•&nbsp;&nbsp;
           A 🍺 ICON MEANS YOUR NEXT TRAIN IS MORE THAN 10 MINUTES AWAY — PLENTY OF TIME FOR ANOTHER PINT AT THE LOCAL&nbsp;&nbsp;•&nbsp;&nbsp;
-          HEINEKEN® PUB BOARD — ST. JAMES&apos;S PARK UNDERGROUND&nbsp;&nbsp;•&nbsp;&nbsp;
+          ST. JAMES&apos;S PARK PUB BOARD — LONDON UNDERGROUND&nbsp;&nbsp;•&nbsp;&nbsp;
           ENJOY RESPONSIBLY. DRINKAWARE.CO.UK&nbsp;&nbsp;•&nbsp;&nbsp;
         </div>
       </div>
@@ -307,23 +352,36 @@ export default function App() {
   // ── Fetch crowding ──
   async function fetchCrowding() {
     try {
-      const now      = new Date()
-      const dayType  = DAY_TYPES[now.getDay()]
-      const res      = await fetch(CROWDING_URL(dayType))
+      const now     = new Date()
+      const dayType = DAY_TYPES[now.getDay()]
+      const res     = await fetch(CROWDING_URL(dayType))
       if (!res.ok) return   // silently ignore — crowding is best-effort
-      const data     = await res.json()
+      const data    = await res.json()
 
-      // TfL returns timeBands array: [{ timeBand, percentageOfBaseline }, ...]
-      if (data?.timeBands && Array.isArray(data.timeBands)) {
-        const hour     = now.getHours()
-        const hourStr  = `${pad2(hour)}:00-${pad2(hour + 1)}:00`
-        // Find the band matching current hour
-        const band = data.timeBands.find(b =>
-          b.timeBand && b.timeBand.startsWith(pad2(hour))
-        ) || data.timeBands[Math.min(hour, data.timeBands.length - 1)]
+      const hour = now.getHours()
 
-        const pct = band?.percentageOfBaseline ?? null
-        setCrowding(typeof pct === 'number' ? Math.round(pct) : null)
+      // Try timeBands array first (TfL v1 format)
+      if (data?.timeBands && Array.isArray(data.timeBands) && data.timeBands.length > 0) {
+        const band =
+          data.timeBands.find(b => b.timeBand && b.timeBand.startsWith(pad2(hour))) ||
+          data.timeBands[Math.min(hour, data.timeBands.length - 1)]
+        const pct = band?.percentageOfBaseline ?? band?.percentage ?? null
+        if (typeof pct === 'number') { setCrowding(Math.round(pct)); return }
+      }
+
+      // Try top-level percentageOfBaseline
+      if (typeof data?.percentageOfBaseline === 'number') {
+        setCrowding(Math.round(data.percentageOfBaseline))
+        return
+      }
+
+      // Try array response (some TfL endpoints return an array)
+      if (Array.isArray(data) && data.length > 0) {
+        const band =
+          data.find(b => b.timeBand && b.timeBand.startsWith(pad2(hour))) ||
+          data[Math.min(hour, data.length - 1)]
+        const pct = band?.percentageOfBaseline ?? band?.percentage ?? null
+        if (typeof pct === 'number') { setCrowding(Math.round(pct)); return }
       }
     } catch {
       // crowding is informational — do not set error state
@@ -364,7 +422,7 @@ export default function App() {
       <div className="crt-vignette" />
 
       {/* Header */}
-      <HeaderBar clock={clock} />
+      <HeaderBar clock={clock} crowding={crowding} />
 
       {/* Main content */}
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
@@ -377,37 +435,6 @@ export default function App() {
         ) : (
           <>
             <ColumnHeader />
-
-            {/* Crowding summary banner */}
-            {crowding !== null && (
-              <div
-                className="flex items-center gap-4 px-6 py-2"
-                style={{
-                  borderBottom: '1px solid #001a00',
-                  background: 'rgba(0,130,0,0.03)',
-                  fontSize: '1.4rem',
-                }}
-              >
-                <Users size={16} style={{ color: crowdColor(crowding), flexShrink: 0 }} />
-                <span style={{ color: '#005500', letterSpacing: '0.1em' }}>STATION CROWDING:</span>
-                <span style={{ color: crowdColor(crowding), letterSpacing: '0.15em' }}>
-                  {crowdLabel(crowding)}
-                </span>
-                <div className="crowd-bar-bg" style={{ width: '200px' }}>
-                  <div
-                    className="crowd-bar-fill"
-                    style={{
-                      width: `${crowding}%`,
-                      background: crowdColor(crowding),
-                      boxShadow: `0 0 6px ${crowdColor(crowding)}`,
-                    }}
-                  />
-                </div>
-                <span style={{ color: '#004000', fontSize: '1.2rem' }}>
-                  ({crowding}% of peak capacity — historical estimate)
-                </span>
-              </div>
-            )}
 
             {/* Departures list */}
             <div style={{ flex: 1, overflow: 'hidden' }}>

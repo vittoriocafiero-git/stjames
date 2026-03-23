@@ -54,27 +54,10 @@ body {
   );
 }
 
-/* Neon glow text */
-.glow {
-  text-shadow:
-    0 0 4px var(--hgreen),
-    0 0 10px var(--hgreen),
-    0 0 18px var(--hgreen);
-}
-
-.glow-dim {
-  text-shadow:
-    0 0 3px var(--hgreen-dim),
-    0 0 7px var(--hgreen-dim);
-}
-
-.glow-bright {
-  text-shadow:
-    0 0 4px var(--hgreen-bright),
-    0 0 12px var(--hgreen-bright),
-    0 0 24px var(--hgreen-bright),
-    0 0 40px #00ff00;
-}
+/* Text classes — glow removed for readability */
+.glow {}
+.glow-dim {}
+.glow-bright {}
 
 /* Row separator */
 .board-row {
