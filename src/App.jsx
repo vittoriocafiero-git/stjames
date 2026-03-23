@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Beer, AlertTriangle, RefreshCw, Train, Users } from 'lucide-react'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const NAPTAN_ID     = '940GZZLUSJP'
+const NAPTAN_ID     = '940GZZLUPCC'
 const ARRIVALS_URL  = `https://api.tfl.gov.uk/StopPoint/${NAPTAN_ID}/Arrivals`
 const CROWDING_URL  = (dayType) => `https://api.tfl.gov.uk/crowding/${NAPTAN_ID}/${dayType}`
 const REFRESH_MS    = 30_000
@@ -51,7 +51,7 @@ function HeaderBar({ clock, crowding }) {
       {/* Station name */}
       <div className="flex flex-col">
         <div style={{ fontSize: '3rem', letterSpacing: '0.15em', color: '#008200' }}>
-          ST. JAMES&apos;S PARK
+          PICCADILLY CIRCUS
         </div>
         <div style={{ fontSize: '1.3rem', letterSpacing: '0.4em', color: '#005500' }}>
           UNDERGROUND DEPARTURES
@@ -270,7 +270,7 @@ function Footer() {
         >
           🍺&nbsp; TIME FOR ONE MORE?&nbsp;&nbsp;•&nbsp;&nbsp;PLEASE DRINK RESPONSIBLY&nbsp;&nbsp;•&nbsp;&nbsp;
           A 🍺 ICON MEANS YOUR NEXT TRAIN IS MORE THAN 10 MINUTES AWAY — PLENTY OF TIME FOR ANOTHER PINT AT THE LOCAL&nbsp;&nbsp;•&nbsp;&nbsp;
-          ST. JAMES&apos;S PARK PUB BOARD — LONDON UNDERGROUND&nbsp;&nbsp;•&nbsp;&nbsp;
+          PICCADILLY CIRCUS PUB BOARD — LONDON UNDERGROUND&nbsp;&nbsp;•&nbsp;&nbsp;
           ENJOY RESPONSIBLY. DRINKAWARE.CO.UK&nbsp;&nbsp;•&nbsp;&nbsp;
         </div>
       </div>
