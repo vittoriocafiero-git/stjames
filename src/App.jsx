@@ -35,7 +35,8 @@ function crowdLabel(pct) {
   if (pct >= 80) return 'PACKED'
   if (pct >= 55) return 'BUSY'
   if (pct >= 30) return 'MODERATE'
-  return 'QUIET'
+  if (pct > 0)   return 'QUIET'
+  return 'NO CONGESTION'
 }
 
 function truncate(str, max) {
@@ -123,7 +124,9 @@ function CrowdingPanel({ crowding }) {
       </div>
       <div style={{ fontSize: '1rem', color: '#003300', letterSpacing: '0.05em' }}>
         {hasData
-          ? `${crowding}% of peak capacity · historical estimate`
+          ? crowding === 0
+            ? 'no congestion recorded for this time band · historical estimate'
+            : `${crowding}% of peak capacity · historical estimate`
           : 'crowding data unavailable for this station'}
       </div>
     </div>
@@ -140,12 +143,12 @@ function ColumnHeader() {
   return (
     <div
       className="grid gap-2 px-6 py-2 header-line"
-      style={{ gridTemplateColumns: '9rem 1fr 7rem 8rem 9rem' }}
+      style={{ gridTemplateColumns: '9rem 22rem 8rem 16rem 9rem' }}
     >
       <div style={cellStyle}>DEPARTS</div>
       <div style={cellStyle}>DESTINATION</div>
       <div style={cellStyle}>LINE</div>
-      <div style={cellStyle}>PLAT</div>
+      <div style={cellStyle}>PLATFORM</div>
       <div style={cellStyle}>EXPT</div>
     </div>
   )
@@ -176,7 +179,7 @@ function DepartureRow({ arrival, crowdingPct, index }) {
   const depStr  = `${pad2(depTime.getHours())}:${pad2(depTime.getMinutes())}`
 
   const rowStyle = {
-    gridTemplateColumns: '9rem 1fr 7rem 8rem 9rem',
+    gridTemplateColumns: '9rem 22rem 8rem 16rem 9rem',
     borderBottom: '1px solid #001a00',
     padding: '10px 24px',
     background: isBeer
@@ -337,7 +340,7 @@ export default function App() {
       // Sort by timeToStation, cap at 12 rows
       const sorted = [...data]
         .sort((a, b) => a.timeToStation - b.timeToStation)
-        .slice(0, 12)
+        .slice(0, 10)
 
       setArrivals(sorted)
       setLastUpdated(new Date())
@@ -362,11 +365,7 @@ export default function App() {
 
       if (!data?.timeBands || !Array.isArray(data.timeBands)) return
 
-      // All zeros means TfL has no crowd data for this station
-      const allZero = data.timeBands.every(b => b.percentageOfBaseLine === 0)
-      if (allZero) { setCrowding(null); return }
-
-      // Match current 15-min band: bands start "HH:MM-", current time prefix is "HH:MM"
+      // Match current 15-min band e.g. "08:15-08:30"
       const h   = pad2(now.getHours())
       const m   = pad2(Math.floor(now.getMinutes() / 15) * 15)
       const key = `${h}:${m}`
@@ -375,6 +374,7 @@ export default function App() {
         data.timeBands[0]
 
       const pct = band?.percentageOfBaseLine
+      // Always set — even 0 is valid data (station is quiet / no congestion recorded)
       if (typeof pct === 'number') setCrowding(Math.round(pct))
     } catch {
       // crowding is informational — do not set error state
