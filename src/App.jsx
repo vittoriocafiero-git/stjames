@@ -350,39 +350,32 @@ export default function App() {
   }
 
   // ── Fetch crowding ──
+  // TfL response: { timeBands: [{ timeBand: "HH:MM-HH:MM", percentageOfBaseLine: N }], isFound, isAlwaysQuiet }
+  // Bands are 15-minute intervals. Field is "percentageOfBaseLine" (capital L).
   async function fetchCrowding() {
     try {
       const now     = new Date()
       const dayType = DAY_TYPES[now.getDay()]
       const res     = await fetch(CROWDING_URL(dayType))
-      if (!res.ok) return   // silently ignore — crowding is best-effort
+      if (!res.ok) return
       const data    = await res.json()
 
-      const hour = now.getHours()
+      if (!data?.timeBands || !Array.isArray(data.timeBands)) return
 
-      // Try timeBands array first (TfL v1 format)
-      if (data?.timeBands && Array.isArray(data.timeBands) && data.timeBands.length > 0) {
-        const band =
-          data.timeBands.find(b => b.timeBand && b.timeBand.startsWith(pad2(hour))) ||
-          data.timeBands[Math.min(hour, data.timeBands.length - 1)]
-        const pct = band?.percentageOfBaseline ?? band?.percentage ?? null
-        if (typeof pct === 'number') { setCrowding(Math.round(pct)); return }
-      }
+      // All zeros means TfL has no crowd data for this station
+      const allZero = data.timeBands.every(b => b.percentageOfBaseLine === 0)
+      if (allZero) { setCrowding(null); return }
 
-      // Try top-level percentageOfBaseline
-      if (typeof data?.percentageOfBaseline === 'number') {
-        setCrowding(Math.round(data.percentageOfBaseline))
-        return
-      }
+      // Match current 15-min band: bands start "HH:MM-", current time prefix is "HH:MM"
+      const h   = pad2(now.getHours())
+      const m   = pad2(Math.floor(now.getMinutes() / 15) * 15)
+      const key = `${h}:${m}`
+      const band =
+        data.timeBands.find(b => b.timeBand?.startsWith(key)) ||
+        data.timeBands[0]
 
-      // Try array response (some TfL endpoints return an array)
-      if (Array.isArray(data) && data.length > 0) {
-        const band =
-          data.find(b => b.timeBand && b.timeBand.startsWith(pad2(hour))) ||
-          data[Math.min(hour, data.length - 1)]
-        const pct = band?.percentageOfBaseline ?? band?.percentage ?? null
-        if (typeof pct === 'number') { setCrowding(Math.round(pct)); return }
-      }
+      const pct = band?.percentageOfBaseLine
+      if (typeof pct === 'number') setCrowding(Math.round(pct))
     } catch {
       // crowding is informational — do not set error state
     }
