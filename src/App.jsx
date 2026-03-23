@@ -140,7 +140,7 @@ function ColumnHeader() {
   return (
     <div
       className="grid gap-2 px-6 py-2 header-line"
-      style={{ gridTemplateColumns: '7rem 1fr 7rem 1fr 8rem' }}
+      style={{ gridTemplateColumns: '7rem 2fr 7rem 1fr 8rem' }}
     >
       <div style={cellStyle}>DEPARTS</div>
       <div style={cellStyle}>DESTINATION</div>
@@ -176,7 +176,7 @@ function DepartureRow({ arrival, crowdingPct, index }) {
   const depStr  = `${pad2(depTime.getHours())}:${pad2(depTime.getMinutes())}`
 
   const rowStyle = {
-    gridTemplateColumns: '7rem 1fr 7rem 1fr 8rem',
+    gridTemplateColumns: '7rem 2fr 7rem 1fr 8rem',
     borderBottom: '1px solid #001a00',
     padding: '10px 24px',
     background: isBeer
