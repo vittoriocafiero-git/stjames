@@ -35,8 +35,7 @@ function crowdLabel(pct) {
   if (pct >= 80) return 'PACKED'
   if (pct >= 55) return 'BUSY'
   if (pct >= 30) return 'MODERATE'
-  if (pct > 0)   return 'QUIET'
-  return 'NO CONGESTION'
+  return 'QUIET'
 }
 
 function truncate(str, max) {
@@ -124,10 +123,8 @@ function CrowdingPanel({ crowding }) {
       </div>
       <div style={{ fontSize: '1rem', color: '#003300', letterSpacing: '0.05em' }}>
         {hasData
-          ? crowding === 0
-            ? 'no congestion recorded for this time band · historical estimate'
-            : `${crowding}% of peak capacity · historical estimate`
-          : 'crowding data unavailable for this station'}
+          ? `${crowding}% of peak capacity`
+          : 'crowding data unavailable'}
       </div>
     </div>
   )
@@ -143,7 +140,7 @@ function ColumnHeader() {
   return (
     <div
       className="grid gap-2 px-6 py-2 header-line"
-      style={{ gridTemplateColumns: '9rem 22rem 8rem 16rem 9rem' }}
+      style={{ gridTemplateColumns: '8rem 1fr 8rem 12rem 9rem' }}
     >
       <div style={cellStyle}>DEPARTS</div>
       <div style={cellStyle}>DESTINATION</div>
@@ -179,7 +176,7 @@ function DepartureRow({ arrival, crowdingPct, index }) {
   const depStr  = `${pad2(depTime.getHours())}:${pad2(depTime.getMinutes())}`
 
   const rowStyle = {
-    gridTemplateColumns: '9rem 22rem 8rem 16rem 9rem',
+    gridTemplateColumns: '8rem 1fr 8rem 12rem 9rem',
     borderBottom: '1px solid #001a00',
     padding: '10px 24px',
     background: isBeer
@@ -198,14 +195,9 @@ function DepartureRow({ arrival, crowdingPct, index }) {
       {/* Departs */}
       <div className="glow" style={textSize}>{depStr}</div>
 
-      {/* Destination + crowding */}
-      <div className="flex flex-col gap-1">
-        <div className="glow" style={{ ...textSize, letterSpacing: '0.05em' }}>
-          {truncate(destinationName, 28)}
-        </div>
-        {crowdingPct !== null && (
-          <CrowdingBar pct={crowdingPct} label={crowdLabel(crowdingPct)} />
-        )}
+      {/* Destination */}
+      <div className="glow" style={{ ...textSize, letterSpacing: '0.05em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        {destinationName}
       </div>
 
       {/* Line */}
@@ -214,7 +206,7 @@ function DepartureRow({ arrival, crowdingPct, index }) {
       </div>
 
       {/* Platform */}
-      <div style={{ ...textSize, ...dimColor }}>
+      <div style={{ ...textSize, ...dimColor, whiteSpace: 'nowrap' }}>
         {platformName || '—'}
       </div>
 
