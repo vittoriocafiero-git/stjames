@@ -121,11 +121,11 @@ function CrowdingPanel({ crowding }) {
           {label}
         </div>
       </div>
-      <div style={{ fontSize: '1rem', color: '#003300', letterSpacing: '0.05em' }}>
-        {hasData
-          ? `${crowding}% of peak capacity`
-          : 'crowding data unavailable'}
-      </div>
+      {hasData && crowding > 0 && (
+        <div style={{ fontSize: '1rem', color: '#003300', letterSpacing: '0.05em' }}>
+          {crowding}% of peak capacity
+        </div>
+      )}
     </div>
   )
 }
